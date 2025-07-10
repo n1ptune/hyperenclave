@@ -14,6 +14,8 @@
 
 use crate::percpu::PerCpu;
 
+//从linux栈切换到hypervisor的栈
+//每个cpu使用单独的栈空间
 unsafe extern "sysv64" fn switch_stack(cpu_id: usize, linux_sp: usize) -> i32 {
     let cpu_data = PerCpu::from_id(cpu_id);
     let hv_sp = cpu_data.stack_top();
@@ -33,6 +35,7 @@ unsafe extern "sysv64" fn switch_stack(cpu_id: usize, linux_sp: usize) -> i32 {
     ret
 }
 
+//入口函数
 #[naked]
 #[no_mangle]
 pub unsafe extern "C" fn arch_entry(_cpu_id: usize) -> i32 {
@@ -47,7 +50,7 @@ pub unsafe extern "C" fn arch_entry(_cpu_id: usize) -> i32 {
         push r15
 
         mov rsi, rsp
-        call {0}
+        call {0} //sym switch_stack
 
         pop r15
         pop r14

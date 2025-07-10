@@ -122,8 +122,22 @@ fn primary_init_early() -> HvResult {
     info!("Hypervisor header: {:#x?}", HvHeader::get());
     debug!("System config: {:#x?}", system_config);
 
+    //初始化加密算法CRYPTO_ALG和NONCE_SEED
     reclaim::init();
+    // 初始化内存管理模块
+    // 内存分布为
+    // HV_BASE
+    // header.core_size
+    // max_cpus * PER_CPU_SIZE
+    // sys_config
+    // heap
+    // cmr
+    // frame
+    // 堆初始化使用了buddy_system_allocator
+    // frame使用了bitmap_allocator
+    // cmr应该是管理或者就是enclave的内存区域
     memory::init()?;
+    // 初始化root cell的内存映射
     cell::init()?;
 
     INIT_EARLY_OK.store(1, Ordering::Release);
@@ -156,7 +170,9 @@ fn primary_init_late() -> HvResult {
 
     println!("Rust-hypervisor (libtpm) version v{}.{}.{}", ra, rb, rc);
 
+    // iommu设置
     iommu::init()?;
+    // TPM设置
     if !tc::tc_init() {
         println!("HyperEnclave: tpm or cyrpto module initialization failed");
         return hv_result_err!(EIO);
@@ -167,6 +183,7 @@ fn primary_init_late() -> HvResult {
 }
 
 fn main(cpu_id: usize, linux_sp: usize) -> HvResult {
+    //获取cpu_data，在线cpu数量，是否是主cpu
     let cpu_data = PerCpu::from_id_mut(cpu_id);
     let online_cpus = HvHeader::get().online_cpus as usize;
     let is_primary = ENTERED_CPUS.fetch_add(1, Ordering::SeqCst) == 0;
@@ -197,6 +214,7 @@ fn main(cpu_id: usize, linux_sp: usize) -> HvResult {
     cpu_data.activate_vmm()
 }
 
+//从hypervisor恢复到linux
 fn restore_states(cpu_id: usize) {
     let cpu_data = PerCpu::from_id_mut(cpu_id);
     if cpu_data.state != percpu::CpuState::HvEnabled {
@@ -214,6 +232,7 @@ extern "sysv64" fn entry(cpu_id: usize, linux_sp: usize) -> i32 {
         ERROR_NUM.store(e.code(), Ordering::Release);
         code = e.code();
     }
+    //恢复linux现场
     restore_states(cpu_id);
     println!("CPU {} return back to driver with code {}.", cpu_id, code);
     code

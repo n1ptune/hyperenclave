@@ -52,6 +52,9 @@ impl Cell {
         // map hypervisor memory to empty in gpm
         // It returns the plaintext view of the empty page
         // if untrusted world dump trusted memory
+        // map with empty会将内存映射到一个空的页表项，应该是占位用的，
+        // 后续通过mmap设置真正的映射，同时防止未映射区域的访问
+        // NestedPageTable->Level4PageTable->Level4PageTableUnlocked->map->mapper
         gpm.insert(MemoryRegion::new_with_empty_mapper(
             hv_phys_start,
             hv_phys_size,
@@ -224,6 +227,7 @@ lazy_static! {
 }
 
 pub fn init() -> HvResult {
+    //检测是否支持虚拟化
     crate::arch::vmm::check_hypervisor_feature()?;
 
     lazy_static::initialize(&ROOT_CELL);

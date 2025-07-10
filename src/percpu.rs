@@ -92,6 +92,7 @@ impl PerCpu {
 
         self.cpu_id = cpu_id;
         self.state = CpuState::HvDisabled;
+        //保存linux现场
         self.linux = LinuxContext::load_from(linux_sp);
 
         let mut hvm = cell.hvm.clone();
@@ -115,6 +116,7 @@ impl PerCpu {
             // avoid dropping, same below
             core::ptr::write(&mut self.hvm, hvm);
             core::ptr::write(&mut self.enclave_thread, EnclaveThread::new());
+            // 激活hvm页表
             self.hvm.activate();
             core::ptr::write(&mut self.vcpu, Vcpu::new(&self.linux, cell)?);
         }
@@ -147,6 +149,16 @@ impl PerCpu {
         println!("Activating hypervisor on CPU {}...", self.cpu_id);
         ACTIVATED_CPUS.fetch_add(1, Ordering::SeqCst);
 
+
+        /*
+        local_cpu_data
+        hvm.insert(MemoryRegion::new_with_offset_mapper(
+            LOCAL_PER_CPU_BASE,
+            paddr,
+            PER_CPU_SIZE,
+            MemFlags::READ | MemFlags::WRITE | MemFlags::ENCRYPTED,
+        ))?;
+         */
         let local_cpu_data = Self::from_local_base_mut();
         let old_percpu_vaddr = self as *const _ as usize;
         // Switch stack to the private mapping.

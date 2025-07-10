@@ -143,6 +143,8 @@ impl<T> GuestPtr<'_, T> {
     /// Perform sanity checks on paddr:
     /// 1. Check the memory region the `gpaddr` points to matches the pointer type;
     /// 2. Check whether hypervisor is able to access the host physical translated from `gpaddr`.
+    /// 如果is_secure检查是否在Epcm中
+    /// 如果is_secure为false，检查是否在Epcm中或者是否是normal world
     fn check_gpaddr(gpaddr: GuestPhysAddr, is_secure: bool) -> HvResult {
         if is_secure {
             if !EpcmManager::is_valid_epc(gpaddr) {

@@ -309,13 +309,14 @@ impl ConvMemManager {
                     "ConvMemManager::new(): CMR range number cannot be 0"
                 );
             }
-
+            // 检查内存没有越界
             Self::check_ranges(&hv_header.conv_mem_ranges, hv_header.nr_conv_mem)?;
             Self::check_ranges(&hv_header.init_epc_ranges, hv_header.nr_init_epc)?;
 
             let nr_init_epc = hv_header.nr_init_epc as usize;
             if nr_init_epc != 0 {
                 let init_epc_start = hv_header.init_epc_ranges[0].start;
+                //有问题，应该是+ hv_header.init_epc_ranges[nr_init_epc-1].size;存疑
                 let init_epc_end = hv_header.init_epc_ranges[nr_init_epc - 1].start
                     + hv_header.init_epc_ranges[nr_init_epc].size;
                 let conv_mem_ranges = *CONV_MEM_START..*CONV_MEM_END;

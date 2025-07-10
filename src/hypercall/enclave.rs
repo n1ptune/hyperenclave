@@ -46,6 +46,7 @@ impl HyperCall<'_> {
         config_ptr: GuestPtr<HvEnclDesc>,
     ) -> HyperCallResult<usize> {
         let now = Instant::now();
+        // 将guest va转换为guest pa
         let secs_gpaddr = config_ptr.as_guest_paddr()?;
         let secs = *GuestPtr::gpaddr_to_ref(&secs_gpaddr, false)?;
         info!("enclave_create({:#x?}): {:#x?}", config_ptr, secs);
